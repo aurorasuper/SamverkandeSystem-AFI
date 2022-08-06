@@ -13,5 +13,16 @@ namespace Ads.Models
         public int AdOwnerId { get; set; }
 
         public virtual TblAdOwner AdOwner { get; set; } = null!;
+
+        public void SetTblAd(Ad ad)
+        {
+            AdTitle = ad.AdTitle;
+            AdContent = ad.AdContent;
+            AdGoodsPrice = ad.AdGoodsPrice;
+            AdCost = ad.AdCost;
+            AdOwnerId = ad.AdOwnerId;
+        }
     }
+
+     
 }
