@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Ads.Models;
 using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace Ads.Controllers
 {
@@ -15,7 +16,7 @@ namespace Ads.Controllers
     public class AdOwnerController : ControllerBase
     {
         private readonly Ads_DBContext _context;
-
+        private const string SubscriberUri = "https://localhost:7125/api/Subscribers";
         public AdOwnerController(Ads_DBContext context)
         {
             _context = context;
@@ -33,25 +34,66 @@ namespace Ads.Controllers
         }
 
         //GET: api/AdOwner/Subscriber/Id
+        
         [HttpGet("Subscriber/{id}")]
-        public async Task<ActionResult<String>> GetSubscriber(int id)
+        public async Task<ActionResult<Subscriber>> GetSubscriber(int id)
         {
-            using (HttpClient client = new HttpClient())
+            // check if subscriber is already in Ads database. 
+            var tblAdOwner = _context.TblAdOwners.Where(o => o.OwnSubId == id).FirstOrDefault();
+            Subscriber sub = new Subscriber();
+
+            // subscriber is not in database, get from subscribers system
+            if (tblAdOwner == null)
             {
-                try
+                //Make Http request to Subscribers system. Get subscriber info from id 
+                using (HttpClient client = new HttpClient())
                 {
-                    HttpResponseMessage response = client.GetAsync("https://localhost:7125/api/Subscribers/", (HttpCompletionOption)id).Result;
-                    response.EnsureSuccessStatusCode();
-                    var responseString = await response.Content.ReadAsStringAsync();
-                    var sub = JsonConvert.DeserializeObject<String>(responseString);
-                    //return responseString;
-                    return sub;
-         
-                }catch(HttpRequestException e)
-                {
-                    return NotFound(e);
+                    try
+                    {
+                        HttpResponseMessage response = client.GetAsync(SubscriberUri + id).Result;
+
+                        // catches 404 not found or other error messages 
+                        response.EnsureSuccessStatusCode();
+
+                        // read API response and store as local subscriber model 
+                        var responseString = await response.Content.ReadAsStringAsync();
+                        sub = JsonConvert.DeserializeObject<Subscriber>(responseString);
+
+                        // add subscriber to tblOwners db
+                        tblAdOwner.OwnIsSub = true;
+                        tblAdOwner.OwnSubId = sub.SubId;
+                        tblAdOwner.OwnName = sub.SubName;
+                        tblAdOwner.OwnPhone = sub.SubPhone;
+                        tblAdOwner.OwnDeliveryAdress = sub.SubDeliveryAdress;
+                        tblAdOwner.OwnDeliveryCounty = sub.SubDeliveryCounty;
+                        tblAdOwner.OwnDeliveryZip = sub.SubDeliveryZip;
+                        _context.TblAdOwners.Add(tblAdOwner);
+                        await _context.SaveChangesAsync();
+
+                        return sub;
+
+                    }
+                    catch (HttpRequestException e)
+                    {
+
+                        return NotFound(e.Message);
+                    }
                 }
             }
+
+            
+            
+            // Subscriber is already in database, return subscriber model 
+            sub.SubId = (int)tblAdOwner.OwnSubId;
+            sub.SubName = tblAdOwner.OwnName;
+            sub.SubPhone = tblAdOwner.OwnPhone;
+            sub.SubDeliveryAdress = tblAdOwner.OwnDeliveryAdress;
+            sub.SubDeliveryZip = tblAdOwner.OwnDeliveryZip;
+            sub.SubDeliveryCounty = tblAdOwner.OwnDeliveryCounty;
+
+            return sub;
+
+
         }
 
         // GET: api/AdOwner/5
@@ -82,6 +124,7 @@ namespace Ads.Controllers
                 return BadRequest();
             }
 
+
             _context.Entry(tblAdOwner).State = EntityState.Modified;
 
             try
@@ -103,6 +146,56 @@ namespace Ads.Controllers
             return NoContent();
         }
 
+        //PUT: api/adOwner/Subscriber
+        [HttpPut("Subscriber/{id}")]
+        public async Task<IActionResult> PutSubscriber(int id, Subscriber sub)
+        {
+            if (id != sub.SubId)
+            {
+                return BadRequest("Ids do not match");
+            }
+            // Store changes in sub model as TblAdowner model
+            TblAdOwner tblAdOwner = _context.TblAdOwners.Where(o => o.OwnSubId == id).FirstOrDefault();
+            if(tblAdOwner == null)
+            {
+                return BadRequest("tblAdOwner does not exist");
+            }
+            tblAdOwner.OwnName = sub.SubName;
+            tblAdOwner.OwnPhone = sub.SubPhone;
+            tblAdOwner.OwnDeliveryAdress = sub.SubDeliveryAdress;
+            tblAdOwner.OwnDeliveryCounty = sub.SubDeliveryCounty;
+            tblAdOwner.OwnDeliveryZip = sub.SubDeliveryZip;
+
+            // modify stored adOwner 
+            _context.Entry(tblAdOwner).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!SubscriberExists(id))
+                {
+                    return NotFound("Subscriber Exists function error");
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            //update subscriber in subscriber system
+            
+            var isSuccess = await PutSubscriberRequest(id, sub);
+            if (isSuccess != "")
+            {
+                return NotFound(isSuccess);
+            }
+
+            return NoContent();
+        }
+
+
         // POST: api/AdOwner
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
@@ -117,6 +210,8 @@ namespace Ads.Controllers
 
             return CreatedAtAction("GetTblAdOwner", new { id = tblAdOwner.OwnId }, tblAdOwner);
         }
+
+   
 
         // DELETE: api/AdOwner/5
         [HttpDelete("{id}")]
@@ -141,6 +236,34 @@ namespace Ads.Controllers
         private bool TblAdOwnerExists(int id)
         {
             return (_context.TblAdOwners?.Any(e => e.OwnId == id)).GetValueOrDefault();
+        }
+
+        private bool SubscriberExists(int id)
+        {
+            return (_context.TblAdOwners?.Any(e => e.OwnSubId == id)).GetValueOrDefault();
+        }
+
+        private async Task<String> PutSubscriberRequest(int id, Subscriber sub)
+        {
+            var responseMessage = "";
+                using (HttpClient client = new HttpClient())
+            {
+                try
+                {
+                    var response = await client.PutAsJsonAsync<Subscriber>(SubscriberUri + "/" + id, sub);
+                    
+                    response.EnsureSuccessStatusCode();
+                    
+
+                }
+                catch (HttpRequestException e)
+                {
+                    responseMessage = e.Message;
+                    return await Task.FromResult(responseMessage);
+                    
+                }
+                return await Task.FromResult(responseMessage);
+            }
         }
     }
 }
