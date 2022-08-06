@@ -24,5 +24,58 @@ namespace Ads.Models
         public string? OwnBillingCounty { get; set; }
 
         public virtual ICollection<TblAd> TblAds { get; set; }
+
+        public void setCompany(Company company)
+        {
+            OwnIsSub = false;
+            OwnCompanyOrgNr = company.CompanyOrgNr;
+            OwnName = company.Name;
+            OwnPhone = company.Phone;
+            OwnDeliveryAdress = company.DeliveryAdress;
+            OwnDeliveryCounty = company.DeliveryCounty;
+            OwnDeliveryZip = company.DeliveryZip;
+            OwnBillingAdress = company.BillingAdress;
+            OwnBillingCounty = company.BillingCounty;
+            OwnBillingZip = company.BillingZip;
+        }
+
+        public void setSubscriber(Subscriber sub)
+        {
+            OwnIsSub = true;
+            OwnSubId = sub.SubId;
+            OwnName = sub.SubName;
+            OwnPhone = sub.SubPhone;
+            OwnDeliveryAdress = sub.SubDeliveryAdress;
+            OwnDeliveryCounty = sub.SubDeliveryCounty;
+            OwnDeliveryZip = sub.SubDeliveryZip;
+        }
+
+        public Company GetCompany()
+        {
+            Company company = new Company();
+            company.CompanyOrgNr = OwnCompanyOrgNr;
+            company.Name = OwnName;
+            company.Phone = OwnPhone;
+            company.DeliveryAdress = OwnDeliveryAdress;
+            company.DeliveryCounty = OwnDeliveryCounty;
+            company.DeliveryZip = OwnDeliveryZip;
+            company.BillingAdress = OwnBillingAdress;
+            company.BillingCounty = OwnBillingCounty;
+            company.BillingZip = OwnBillingZip;
+
+            return company;
+        }
+
+        public Subscriber GetSubscriber()
+        {
+            Subscriber sub = new Subscriber();
+            sub.SubId = (int)OwnSubId;
+            sub.SubName = OwnName;
+            sub.SubPhone = OwnPhone;
+            sub.SubDeliveryAdress = OwnDeliveryAdress;
+            sub.SubDeliveryZip = OwnDeliveryZip;
+            sub.SubDeliveryCounty = OwnDeliveryCounty;
+            return sub;
+        }
     }
 }

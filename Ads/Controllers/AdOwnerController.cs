@@ -26,20 +26,20 @@ namespace Ads.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TblAdOwner>>> GetTblAdOwners()
         {
-          if (_context.TblAdOwners == null)
-          {
-              return NotFound();
-          }
+            if (_context.TblAdOwners == null)
+            {
+                return NotFound();
+            }
             return await _context.TblAdOwners.ToListAsync();
         }
 
         //GET: api/AdOwner/Subscriber/Id
-        
+
         [HttpGet("Subscriber/{id}")]
-        public async Task<ActionResult<Subscriber>> GetSubscriber(int id)
+        public async Task<ActionResult<TblAdOwner>> GetSubscriber(int id)
         {
             // check if subscriber is already in Ads database. 
-            var tblAdOwner = _context.TblAdOwners.Where(o => o.OwnSubId == id).FirstOrDefault();
+            TblAdOwner tblAdOwner = _context.TblAdOwners.Where(o => o.OwnSubId == id).FirstOrDefault();
             Subscriber sub = new Subscriber();
 
             // subscriber is not in database, get from subscribers system
@@ -60,17 +60,11 @@ namespace Ads.Controllers
                         sub = JsonConvert.DeserializeObject<Subscriber>(responseString);
 
                         // add subscriber to tblOwners db
-                        tblAdOwner.OwnIsSub = true;
-                        tblAdOwner.OwnSubId = sub.SubId;
-                        tblAdOwner.OwnName = sub.SubName;
-                        tblAdOwner.OwnPhone = sub.SubPhone;
-                        tblAdOwner.OwnDeliveryAdress = sub.SubDeliveryAdress;
-                        tblAdOwner.OwnDeliveryCounty = sub.SubDeliveryCounty;
-                        tblAdOwner.OwnDeliveryZip = sub.SubDeliveryZip;
+                        tblAdOwner.setSubscriber(sub);
                         _context.TblAdOwners.Add(tblAdOwner);
                         await _context.SaveChangesAsync();
 
-                        return sub;
+                        return tblAdOwner;
 
                     }
                     catch (HttpRequestException e)
@@ -81,17 +75,7 @@ namespace Ads.Controllers
                 }
             }
 
-            
-            
-            // Subscriber is already in database, return subscriber model 
-            sub.SubId = (int)tblAdOwner.OwnSubId;
-            sub.SubName = tblAdOwner.OwnName;
-            sub.SubPhone = tblAdOwner.OwnPhone;
-            sub.SubDeliveryAdress = tblAdOwner.OwnDeliveryAdress;
-            sub.SubDeliveryZip = tblAdOwner.OwnDeliveryZip;
-            sub.SubDeliveryCounty = tblAdOwner.OwnDeliveryCounty;
-
-            return sub;
+            return tblAdOwner;
 
 
         }
@@ -100,10 +84,10 @@ namespace Ads.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<TblAdOwner>> GetTblAdOwner(int id)
         {
-          if (_context.TblAdOwners == null)
-          {
-              return NotFound();
-          }
+            if (_context.TblAdOwners == null)
+            {
+                return NotFound();
+            }
             var tblAdOwner = await _context.TblAdOwners.FindAsync(id);
 
             if (tblAdOwner == null)
@@ -143,75 +127,46 @@ namespace Ads.Controllers
                 }
             }
 
-            return NoContent();
+            if ((bool)tblAdOwner.OwnIsSub)
+            {
+                Subscriber sub = tblAdOwner.GetSubscriber();
+                var isSuccess = await PutSubscriberRequest(sub.SubId, sub);
+                if (isSuccess != "")
+                {
+                    return NotFound(isSuccess);
+                }   
+            }
+            return Ok(tblAdOwner);
         }
 
-        //PUT: api/adOwner/Subscriber
-        [HttpPut("Subscriber/{id}")]
-        public async Task<IActionResult> PutSubscriber(int id, Subscriber sub)
-        {
-            if (id != sub.SubId)
-            {
-                return BadRequest("Ids do not match");
-            }
-            // Store changes in sub model as TblAdowner model
-            TblAdOwner tblAdOwner = _context.TblAdOwners.Where(o => o.OwnSubId == id).FirstOrDefault();
-            if(tblAdOwner == null)
-            {
-                return BadRequest("tblAdOwner does not exist");
-            }
-            tblAdOwner.OwnName = sub.SubName;
-            tblAdOwner.OwnPhone = sub.SubPhone;
-            tblAdOwner.OwnDeliveryAdress = sub.SubDeliveryAdress;
-            tblAdOwner.OwnDeliveryCounty = sub.SubDeliveryCounty;
-            tblAdOwner.OwnDeliveryZip = sub.SubDeliveryZip;
-
-            // modify stored adOwner 
-            _context.Entry(tblAdOwner).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!SubscriberExists(id))
-                {
-                    return NotFound("Subscriber Exists function error");
-                }
-                else
-                {
-                    throw;
-                }
-            }
-            //update subscriber in subscriber system
-            
-            var isSuccess = await PutSubscriberRequest(id, sub);
-            if (isSuccess != "")
-            {
-                return NotFound(isSuccess);
-            }
-
-            return NoContent();
-        }
-
-
-        // POST: api/AdOwner
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        //POST: api/AdOwner
         [HttpPost]
         public async Task<ActionResult<TblAdOwner>> PostTblAdOwner(TblAdOwner tblAdOwner)
         {
-          if (_context.TblAdOwners == null)
-          {
-              return Problem("Entity set 'Ads_DBContext.TblAdOwners'  is null.");
-          }
+            if (_context.TblAdOwners == null)
+            {
+                return Problem("Entity set 'Ads_DBContext.TblAdOwners'  is null.");
+            }
             _context.TblAdOwners.Add(tblAdOwner);
             await _context.SaveChangesAsync();
-
             return CreatedAtAction("GetTblAdOwner", new { id = tblAdOwner.OwnId }, tblAdOwner);
         }
 
-   
+
+        // POST: api/AdOwner/Company
+        [HttpPost("Company")]
+        public async Task<ActionResult<TblAdOwner>> PostCompany(Company company)
+        {
+            if (_context.TblAdOwners == null)
+            {
+                return Problem("Entity set 'Ads_DBContext.TblAdOwners'  is null.");
+            }
+            TblAdOwner tblAdOwner = new TblAdOwner();
+            tblAdOwner.setCompany(company);
+            _context.TblAdOwners.Add(tblAdOwner);
+            await _context.SaveChangesAsync();
+            return CreatedAtAction("GetTblAdOwner", new { id = tblAdOwner.OwnId }, tblAdOwner);
+        }
 
         // DELETE: api/AdOwner/5
         [HttpDelete("{id}")]
@@ -265,5 +220,55 @@ namespace Ads.Controllers
                 return await Task.FromResult(responseMessage);
             }
         }
+
+        /*
+        //PUT: api/adOwner/Subscriber
+        [HttpPut("Subscriber/{id}")]
+        public async Task<IActionResult> PutSubscriber(int id, Subscriber sub)
+        {
+            if (id != sub.SubId)
+            {
+                return BadRequest("Ids do not match");
+            }
+            // Store changes in sub model as TblAdowner model
+            TblAdOwner tblAdOwner = _context.TblAdOwners.Where(o => o.OwnSubId == id).FirstOrDefault();
+            if (tblAdOwner == null)
+            {
+                return BadRequest("tblAdOwner does not exist");
+            }
+            tblAdOwner.OwnName = sub.SubName;
+            tblAdOwner.OwnPhone = sub.SubPhone;
+            tblAdOwner.OwnDeliveryAdress = sub.SubDeliveryAdress;
+            tblAdOwner.OwnDeliveryCounty = sub.SubDeliveryCounty;
+            tblAdOwner.OwnDeliveryZip = sub.SubDeliveryZip;
+
+            // modify stored adOwner 
+            _context.Entry(tblAdOwner).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!SubscriberExists(id))
+                {
+                    return NotFound("Subscriber Exists function error");
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            //update subscriber in subscriber system
+
+            var isSuccess = await PutSubscriberRequest(id, sub);
+            if (isSuccess != "")
+            {
+                return NotFound(isSuccess);
+            }
+
+            return Ok(tblAdOwner);
+        }*/
     }
 }
