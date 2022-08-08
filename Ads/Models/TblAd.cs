@@ -22,6 +22,18 @@ namespace Ads.Models
             AdCost = ad.AdCost;
             AdOwnerId = ad.AdOwnerId;
         }
+
+        public Ad GetAd()
+        {
+            Ad ad = new Ad();
+            ad.AdId = AdId;
+            ad.AdTitle = AdTitle;
+            ad.AdContent = AdContent;
+            ad.AdGoodsPrice = AdGoodsPrice;
+            ad.AdCost = AdCost;
+            ad.AdOwnerId = AdOwnerId;
+            return ad;
+        }
     }
 
      

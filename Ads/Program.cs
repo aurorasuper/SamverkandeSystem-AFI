@@ -12,6 +12,10 @@ var connectionString = builder.Configuration.GetConnectionString("AdsDB");
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<Ads_DBContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddCors(p => p.AddPolicy("corspolicy", build =>
+  {
+      build.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+  }));
 
 var app = builder.Build();
 
@@ -22,6 +26,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors("corspolicy");
 app.UseHttpsRedirection();
 
 app.UseAuthorization();

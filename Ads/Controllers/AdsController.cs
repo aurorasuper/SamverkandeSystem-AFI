@@ -33,7 +33,7 @@ namespace Ads.Controllers
 
         // GET: api/Ads/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<TblAd>> GetTblAd(int id)
+        public async Task<ActionResult<Ad>> GetTblAd(int id)
         {
           if (_context.TblAds == null)
           {
@@ -46,19 +46,21 @@ namespace Ads.Controllers
                 return NotFound();
             }
 
-            return tblAd;
+            Ad ad = tblAd.GetAd();
+            return ad;
         }
 
         // PUT: api/Ads/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutTblAd(int id, TblAd tblAd)
+        public async Task<IActionResult> PutTblAd(int id, Ad ad)
         {
-            if (id != tblAd.AdId)
+            if (id != ad.AdId)
             {
                 return BadRequest();
             }
-
+            TblAd tblAd = _context.TblAds.Where(o => o.AdId == id).FirstOrDefault();
+            tblAd.SetTblAd(ad);
             _context.Entry(tblAd).State = EntityState.Modified;
 
             try

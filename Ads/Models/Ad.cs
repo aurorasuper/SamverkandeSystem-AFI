@@ -13,6 +13,7 @@ namespace Ads.Models
         public Ad()
         {
         }
+
     }
 }
 
