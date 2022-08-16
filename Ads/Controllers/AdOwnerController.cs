@@ -45,12 +45,13 @@ namespace Ads.Controllers
             // subscriber is not in database, get from subscribers system
             if (tblAdOwner == null)
             {
+                tblAdOwner = new TblAdOwner();
                 //Make Http request to Subscribers system. Get subscriber info from id 
                 using (HttpClient client = new HttpClient())
                 {
                     try
                     {
-                        HttpResponseMessage response = client.GetAsync(SubscriberUri + id).Result;
+                        HttpResponseMessage response = client.GetAsync(SubscriberUri + "/"+id).Result;
 
                         // catches 404 not found or other error messages 
                         response.EnsureSuccessStatusCode();
@@ -105,7 +106,7 @@ namespace Ads.Controllers
         {
             if (id != tblAdOwner.OwnId)
             {
-                return BadRequest();
+                return BadRequest("Owner id fail");
             }
 
 
@@ -140,33 +141,46 @@ namespace Ads.Controllers
         }
 
         //POST: api/AdOwner
-        [HttpPost]
+        [HttpPost("Company")]
         public async Task<ActionResult<TblAdOwner>> PostTblAdOwner(TblAdOwner tblAdOwner)
         {
             if (_context.TblAdOwners == null)
             {
                 return Problem("Entity set 'Ads_DBContext.TblAdOwners'  is null.");
             }
-            _context.TblAdOwners.Add(tblAdOwner);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction("GetTblAdOwner", new { id = tblAdOwner.OwnId }, tblAdOwner);
-        }
+            
+            int exist = 0;
+            TblAdOwner checkAdOwner = new TblAdOwner();
 
-
-        // POST: api/AdOwner/Company
-        [HttpPost("Company")]
-        public async Task<ActionResult<TblAdOwner>> PostCompany(Company company)
-        {
-            if (_context.TblAdOwners == null)
+            //kolla om företag är registrerad i db
+            if (!(bool)tblAdOwner.OwnIsSub)
             {
-                return Problem("Entity set 'Ads_DBContext.TblAdOwners'  is null.");
+                checkAdOwner = _context.TblAdOwners.Where(o => o.OwnCompanyOrgNr == tblAdOwner.OwnCompanyOrgNr).FirstOrDefault();
+                if(checkAdOwner != null)
+                {
+                    checkAdOwner.OwnName = tblAdOwner.OwnName;
+                    checkAdOwner.OwnPhone = tblAdOwner.OwnPhone;
+                    checkAdOwner.OwnDeliveryAdress = tblAdOwner.OwnDeliveryAdress;
+                    checkAdOwner.OwnDeliveryCounty = tblAdOwner.OwnDeliveryCounty;
+                    checkAdOwner.OwnDeliveryZip = tblAdOwner.OwnDeliveryZip;
+                    checkAdOwner.OwnBillingAdress = tblAdOwner.OwnBillingAdress;
+                    checkAdOwner.OwnBillingCounty = tblAdOwner.OwnBillingCounty;
+                    checkAdOwner.OwnBillingZip = tblAdOwner.OwnBillingZip;
+                    _context.Entry(checkAdOwner).State = EntityState.Modified;
+                    await _context.SaveChangesAsync();
+                    return Ok(checkAdOwner);
+                }
             }
-            TblAdOwner tblAdOwner = new TblAdOwner();
-            tblAdOwner.setCompany(company);
+
+
             _context.TblAdOwners.Add(tblAdOwner);
             await _context.SaveChangesAsync();
             return CreatedAtAction("GetTblAdOwner", new { id = tblAdOwner.OwnId }, tblAdOwner);
+
+            
         }
+
+
 
         // DELETE: api/AdOwner/5
         [HttpDelete("{id}")]

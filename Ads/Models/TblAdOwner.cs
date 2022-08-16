@@ -23,7 +23,40 @@ namespace Ads.Models
         public string? OwnBillingZip { get; set; }
         public string? OwnBillingCounty { get; set; }
 
-        public virtual ICollection<TblAd> TblAds { get; set; }
+        public virtual  ICollection<TblAd> TblAds { get; set; }
+
+        public void SetAdOwner(AdOwner adOwner)
+        {
+            OwnIsSub = adOwner.OwnIsSub;
+            OwnSubId = adOwner.OwnSubId;
+            OwnCompanyOrgNr = adOwner.OwnCompanyOrgNr;
+            OwnName = adOwner.OwnName;
+            OwnPhone = adOwner.OwnPhone;
+            OwnDeliveryAdress = adOwner.OwnDeliveryAdress;
+            OwnDeliveryCounty = adOwner.OwnDeliveryCounty;
+            OwnDeliveryZip = adOwner.OwnDeliveryZip;
+            OwnBillingAdress = adOwner.OwnBillingAdress;
+            OwnBillingCounty = adOwner.OwnBillingCounty;
+            OwnBillingZip = adOwner.OwnBillingZip;
+        }
+
+        public AdOwner GetAdOwner()
+        {
+            AdOwner adOwner = new AdOwner();
+            adOwner.OwnId = OwnId;
+            adOwner.OwnIsSub = OwnIsSub;
+            adOwner.OwnSubId = OwnSubId;
+            adOwner.OwnCompanyOrgNr = OwnCompanyOrgNr;
+            adOwner.OwnName = OwnName;
+            adOwner.OwnPhone = OwnPhone;
+            adOwner.OwnDeliveryAdress = OwnDeliveryAdress;
+            adOwner.OwnDeliveryZip = OwnDeliveryZip;
+            adOwner.OwnDeliveryCounty = OwnDeliveryCounty;
+            adOwner.OwnBillingAdress = OwnBillingAdress;
+            adOwner.OwnBillingZip = OwnBillingZip;
+            adOwner.OwnBillingCounty = OwnBillingCounty;
+            return adOwner;
+        }
 
         public void setCompany(Company company)
         {
