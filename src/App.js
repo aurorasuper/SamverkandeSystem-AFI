@@ -28,7 +28,7 @@ function App() {
     
     <div className="App">
       <header className="App-header">
-       <h1 className='text-2xl'>Annonser</h1>
+       <h1>Annonser</h1>
        <button className='block hover:bg-blue-500 hover:text-white p-2 rounded-lg text-base text-blue-500 border-2 border-blue-500' onClick={createAd}>Skapa annons</button>
       </header>
       

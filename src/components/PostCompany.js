@@ -2,25 +2,37 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 
-function PostCompany(passUser) {
+function PostCompany({passUser}) {
     const [company, setCompany] = useState({OwnIsSub: false, OwnCompanyOrgNr:"", OwnName:"", OwnPhone:"", OwnDeliveryAdress:"", OwnDeliveryZip:"", OwnDeliveryCounty:"",
         OwnBillingAdress:"", OwnBillingZip:"", OwnBillingCounty:""});
     const [response, setResponse] = useState({});
     const numberPattern = /[^0-9]/;
     const [errorMessages, setErrorMessages] = useState({OwnCompanyOrgNr:"", OwnPhone:"",OwnDeliveryZip:"", OwnBillingZip:""});
 
-    
+    const noErrors = Object.values(errorMessages).every(
+        value => value === ""
+    );
+
+    const hasValues = Object.values(company).every(
+        value => value !== "" || typeof value === Boolean
+    )
     const handleSubmit = (e) =>{
-        e.preventDefault();
         
-        axios.post('https://localhost:7015/api/AdOwner/Company',company)
-        .then(res => {
-            setResponse(res);
-            console.log(res.data)
-            passUser(res.data);
-        }).catch(err => {
-            console.log("Err" + err)
-        })
+        e.preventDefault();
+        validate(company);
+        if(noErrors){
+            axios.post('https://localhost:7015/api/AdOwner/Company',company)
+            .then(res => {
+                setResponse(res);
+                console.log(res.data)
+                passUser(res.data);
+            }).catch(err => {
+                console.log("Err" + err)
+            })
+        }else{
+            setErrorMessages({...errorMessages,submitError:"Vänligen fyll i alla fält korrekt."})
+        }
+
     }
 
     const validate = (o) =>{
@@ -56,27 +68,37 @@ function PostCompany(passUser) {
     const handleChange = (e) =>{
         const {name, value} = e.target;
 
-        // nummertest
-        if(name === "OwnCompanyOrgNr" || name === "OwnPhone" || name==="OwnDeliveryZip" || name==="OwnBillingZip"){
-            if(numberPattern.test(value)){
-                setErrorMessages({...errorMessages,[name]:"Bara nummer är tillåtna."})
-            }else{
-                setErrorMessages({...errorMessages,[name]:""})
-            }
-        }
 
         //tomt fält
         if(value === ""){
             setErrorMessages({...errorMessages,[name]:"Fyll i fältet."})
         }else{
             setErrorMessages({...errorMessages,[name]:""});
+        // nummertest
+            if(name === "OwnCompanyOrgNr" || name === "OwnPhone" || name==="OwnDeliveryZip" || name==="OwnBillingZip"){
+                if(numberPattern.test(value)){
+                    setErrorMessages({...errorMessages,[name]:"Bara nummer är tillåtna."})
+                }else{
+                    setErrorMessages({...errorMessages,[name]:""})
+                }
+            }
+            
         }
+
+
         setCompany({...company, [name]:value});
+        if(hasValues){
+            setErrorMessages({...errorMessages,submitError:""})
+            var btn = document.getElementById("submit");
+            btn.disabled = false;
+        }
+
     }
   return (
     <div>
-        <p>Företagsinformation</p>
+        
         <form onSubmit={handleSubmit} className="flex flex-col flex-auto space-y-5">
+        <h3>Företagsinformation</h3>
             <div>
                 <label>Organisationsnummer</label>
                 <input type="text" name="OwnCompanyOrgNr" onChange={handleChange}></input>
@@ -92,7 +114,7 @@ function PostCompany(passUser) {
                 <input type="text" name="OwnPhone" onChange={handleChange}></input>
                 {errorMessages.OwnPhone !== "" ? <p className="text-red-500">{errorMessages.OwnPhone}</p> : null}
             </div>
-            <p>Leveransadress</p>
+            <h3>Leveransadress</h3>
             <div>
                 <label>Adress</label>
                 <input type="text" name="OwnDeliveryAdress" onChange={handleChange}></input>
@@ -111,7 +133,7 @@ function PostCompany(passUser) {
                 </div>
             </div>
             
-            <p>Faktureringsadress</p>
+            <h3>Faktureringsadress</h3>
             <div>
                 <label>Adress</label>
                 <input type="text" name='OwnBillingAdress' onChange={handleChange}></input>
@@ -125,12 +147,14 @@ function PostCompany(passUser) {
                 </div>
                 <div className="w-1/2 shrink">
                     <label>Ort</label>
-                    <input type="text" nem="OwnBillingCounty" onChange={handleChange}></input>
+                    <input type="text" name="OwnBillingCounty" onChange={handleChange}></input>
                     {errorMessages.OwnBillingCounty !== "" ? <p className="text-red-500">{errorMessages.OwnBillingCounty}</p> : null}
                 </div>
             </div>
+            {errorMessages.submitError !== "" ? <p className="text-red-500 text-center">{errorMessages.submitError}</p> : null}
+            <button id="submit" className='next-btn' disabled type="submit">Nästa</button>
         </form>
-        <button type="submit">Ok</button>
+        
 
     </div>
   )
